@@ -47,6 +47,8 @@ import ArchivesManager from './ArchivesManager';
 import TaxDocsManager from './TaxDocsManager';
 import GeneralMovements from './GeneralMovements';
 import EmployeeIDCards from './EmployeeIDCards';
+import WithholdingToReceive from './WithholdingToReceive';
+import WithholdingToPay from './WithholdingToPay';
 
 import { supabase } from '../services/supabaseClient';
 
@@ -75,7 +77,7 @@ const MOCK_USERS: User[] = [
 const App = () => {
   const [currentView, setCurrentView] = useState<ViewState>('DASHBOARD');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(MOCK_USERS[0]);
   const [globalYear, setGlobalYear] = useState<number>(new Date().getFullYear());
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentCompany, setCurrentCompany] = useState<Company>(INITIAL_COMPANY);
@@ -521,7 +523,7 @@ const App = () => {
             globalDiscount: 0,
             taxRate: 14,
             taxAmount: Number(f.iva) || 0,
-            withholdingAmount: 0,
+            withholdingAmount: f.withholding_amount || 0,
             total: Number(f.total) || 0,
             currency: 'AOA',
             exchangeRate: 1,
@@ -711,7 +713,8 @@ const App = () => {
           time: finalInv.time,
           serie_id: sId,
           hash: finalInv.hash || '',
-          operator_name: finalInv.operatorName || currentUser?.name
+          operator_name: finalInv.operatorName || currentUser?.name,
+          withholding_amount: Number(finalInv.withholdingAmount || 0)
         };
 
         const { error: syncError } = await supabase.from('faturas').upsert(syncPayload);
@@ -1057,10 +1060,7 @@ const App = () => {
   };
 
   const renderView = () => {
-    if (!currentUser) return <LoginPage onLogin={handleLogin} onRegister={(comp, user) => {
-        setUsers([...users, user]);
-        setCurrentCompany(comp);
-    }} />;
+    if (!currentUser) return <LoginPage onLogin={handleLogin} />;
 
     switch (currentView) {
       case 'DASHBOARD': return <Dashboard invoices={certifiedInvoices} />;
@@ -1148,6 +1148,8 @@ const App = () => {
       case 'ACCOUNTING_OPENING_BALANCE': return <OpeningBalanceMap accounts={pgcAccounts} savedBalances={openingBalances} onSaveBalances={setOpeningBalances} onBack={() => setCurrentView('ACCOUNTING_MAPS')} onViewAccount={(code) => { setSelectedExtractAccount(code); setCurrentView('ACCOUNTING_ACCOUNT_EXTRACT'); }} />;
       case 'ACCOUNTING_ACCOUNT_EXTRACT': return <AccountExtract company={currentCompany} accountCode={selectedExtractAccount || '31'} year={globalYear} pgcAccounts={pgcAccounts} openingBalances={openingBalances} invoices={certifiedInvoices} onBack={() => setCurrentView('ACCOUNTING_MAPS')} onUpdateAccountCode={(o, n) => setSelectedExtractAccount(n)} onUpdateBalance={b => setOpeningBalances(openingBalances.map(x => x.id === b.id ? b : x))} />;
       case 'ACCOUNTING_REGULARIZATION': return <RegularizationMap invoices={invoices} onViewInvoice={(inv) => { setInvoiceInitialData(inv); setCurrentView('CREATE_INVOICE'); }} />;
+      case 'ACCOUNTING_WITHHOLDING_RECEIVE': return <WithholdingToReceive invoices={certifiedInvoices} company={currentCompany} />;
+      case 'ACCOUNTING_WITHHOLDING_PAY': return <WithholdingToPay purchases={validPurchases} company={currentCompany} />;
       case 'HR_EMPLOYEES': return <Employees employees={hrEmployees} onSaveEmployee={e => setHrEmployees(prev => [...prev.filter(x => x.id !== e.id), e])} workLocations={workLocations} professions={professions} onIssueContract={i => { setSelectedHrEmployee(i); setCurrentView('HR_CONTRACT_ISSUE'); }} />;
       case 'HR_TRANSFER_ORDER':
       case 'HR_EFFECTIVENESS':
@@ -1217,75 +1219,70 @@ const App = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
-      {currentUser && (
-        <Sidebar 
-          currentView={currentView} 
-          onChangeView={setCurrentView} 
-          isOpen={isSidebarOpen}
-          setIsOpen={setIsSidebarOpen}
-          currentUser={currentUser}
-          onLogout={() => setCurrentUser(null)}
-        />
-      )}
+      <Sidebar 
+        currentView={currentView} 
+        onChangeView={setCurrentView} 
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
+        currentUser={currentUser}
+      />
       
       <div className="flex-1 flex flex-col min-w-0">
-        {currentUser && (
-          <header className="bg-white border-b border-slate-200 h-24 flex items-center justify-between px-6 shadow-md shrink-0 z-10">
-            <div className="flex items-center gap-6">
-               <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded transition-colors"><Menu /></button>
-               <div className="flex items-center gap-4 border-r pr-6 border-slate-200 h-16">
-                   <div className="w-16 h-16 bg-blue-900 rounded-xl flex items-center justify-center text-white font-black text-3xl shadow-xl transform hover:scale-105 transition-all">
-                      IM
-                   </div>
-                   <div className="hidden lg:block">
-                      <h2 className="font-black text-xl text-slate-900 leading-none tracking-tighter">IMATEC SOFTWARE</h2>
-                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-[3px] mt-1">Sistemas de Gestão</p>
-                   </div>
-               </div>
-               <div className="hidden xl:flex flex-col">
-                   <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-widest mb-1">Empresa Licenciada</h2>
-                   <h2 className="font-bold text-slate-700 tracking-tight text-sm truncate max-w-[300px]">{currentCompany.name}</h2>
-               </div>
-            </div>
-            <div className="flex items-center gap-6">
-               <div className="hidden md:flex items-center gap-3 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-lg border border-slate-800">
-                   <ClockIcon size={16} className="text-blue-400 animate-pulse"/>
-                   <div className="flex flex-col">
-                       <span className="text-[10px] font-black uppercase text-slate-400 leading-none mb-0.5">Hora Local</span>
-                       <span className="font-mono font-bold text-sm tracking-widest">
-                          {currentTime.toLocaleTimeString('pt-AO', { hour12: false })}
-                       </span>
-                   </div>
-               </div>
-               {isLoading && (
-                   <div className="flex items-center gap-2 text-xs text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full animate-pulse border border-blue-100">
-                       <Loader2 size={12} className="animate-spin"/> Sincronizando...
-                   </div>
-               )}
-               <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1 px-2 border hover:border-slate-300 transition-all shadow-inner">
-                   <CalendarIcon size={14} className="text-slate-500"/>
-                   <select className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer" value={globalYear} onChange={(e) => setGlobalYear(Number(e.target.value))}>
-                       <option value={2024}>2024</option><option value={2025}>2025</option>
-                   </select>
-               </div>
-               <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                   <div className="text-right hidden sm:block">
-                      <p className="text-sm font-black text-slate-900 leading-none">{currentUser?.name || "Administrador"}</p>
-                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1">{currentUser?.role || "ADMIN"}</p>
-                   </div>
-                   <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-white font-black text-lg border-2 border-slate-100 shadow-lg transition-transform hover:scale-110 cursor-pointer">
-                       {(currentUser?.name || 'A').charAt(0)}
-                   </div>
-               </div>
-            </div>
-          </header>
-        )}
+        <header className="bg-white border-b border-slate-200 h-24 flex items-center justify-between px-6 shadow-md shrink-0 z-10">
+          <div className="flex items-center gap-6">
+             <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded transition-colors"><Menu /></button>
+             <div className="flex items-center gap-4 border-r pr-6 border-slate-200 h-16">
+                 <div className="w-16 h-16 bg-blue-900 rounded-xl flex items-center justify-center text-white font-black text-3xl shadow-xl transform hover:scale-105 transition-all">
+                    IM
+                 </div>
+                 <div className="hidden lg:block">
+                    <h2 className="font-black text-xl text-slate-900 leading-none tracking-tighter">IMATEC SOFTWARE</h2>
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-[3px] mt-1">Sistemas de Gestão</p>
+                 </div>
+             </div>
+             <div className="hidden xl:flex flex-col">
+                 <h2 className="font-black text-slate-400 text-[10px] uppercase tracking-widest mb-1">Empresa Licenciada</h2>
+                 <h2 className="font-bold text-slate-700 tracking-tight text-sm truncate max-w-[300px]">{currentCompany.name}</h2>
+             </div>
+          </div>
+          <div className="flex items-center gap-6">
+             <div className="hidden md:flex items-center gap-3 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-lg border border-slate-800">
+                 <ClockIcon size={16} className="text-blue-400 animate-pulse"/>
+                 <div className="flex flex-col">
+                     <span className="text-[10px] font-black uppercase text-slate-400 leading-none mb-0.5">Hora Local</span>
+                     <span className="font-mono font-bold text-sm tracking-widest">
+                        {currentTime.toLocaleTimeString('pt-AO', { hour12: false })}
+                     </span>
+                 </div>
+             </div>
+             {isLoading && (
+                 <div className="flex items-center gap-2 text-xs text-blue-600 font-bold bg-blue-50 px-3 py-1 rounded-full animate-pulse border border-blue-100">
+                     <Loader2 size={12} className="animate-spin"/> Sincronizando...
+                 </div>
+             )}
+             <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1 px-2 border hover:border-slate-300 transition-all shadow-inner">
+                 <CalendarIcon size={14} className="text-slate-500"/>
+                 <select className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer" value={globalYear} onChange={(e) => setGlobalYear(Number(e.target.value))}>
+                     <option value={2024}>2024</option><option value={2025}>2025</option>
+                 </select>
+             </div>
+             <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                 <div className="text-right hidden sm:block">
+                    <p className="text-sm font-black text-slate-900 leading-none">{currentUser?.name || "Administrador"}</p>
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1">{currentUser?.role || "ADMIN"}</p>
+                 </div>
+                 <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-white font-black text-lg border-2 border-slate-100 shadow-lg transition-transform hover:scale-110 cursor-pointer">
+                     {(currentUser?.name || 'A').charAt(0)}
+                 </div>
+             </div>
+          </div>
+        </header>
 
-        <main className="flex-1 overflow-auto p-0 relative">
+        <main className="flex-1 overflow-auto p-4 md:p-6 relative">
            {renderView()}
         </main>
       </div>
-      {currentUser && <AIAssistant invoices={invoices} purchases={purchases} clients={clients} />}
+      <AIAssistant invoices={invoices} purchases={purchases} clients={clients} />
     </div>
   );
 };

@@ -68,7 +68,7 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({
           width: i.width || 1,
           height: i.height || 1,
           showMetrics: i.showMetrics || false,
-          withholdingRate: i.withholdingRate || 6.5,
+          withholdingRate: i.withholdingRate || 0,
           withholdingAmount: i.withholdingAmount || 0,
           expiryDate: i.expiryDate || ''
       }));
@@ -102,8 +102,10 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({
 
   const subtotal = useMemo(() => items.reduce((acc, item) => acc + (item.quantity * item.unitPrice * (item.length || 1) * (item.width || 1) * (item.height || 1) * (1 - (item.discount || 0) / 100)), 0), [items]);
   const totalTaxAmount = useMemo(() => items.reduce((acc, item) => acc + (item.taxAmount || 0), 0), [items]);
+  const totalWithholding = useMemo(() => items.reduce((acc, item) => acc + (item.withholdingAmount || 0), 0), [items]);
+  
   const discountGlobalValue = subtotal * (globalDiscount / 100);
-  const totalFinal = (subtotal + totalTaxAmount) - discountGlobalValue;
+  const totalFinal = (subtotal + totalTaxAmount) - discountGlobalValue - totalWithholding;
 
   const handleAddItem = () => {
     setItems([...items, { 
@@ -111,7 +113,7 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({
       unitPrice: 0, discount: 0, taxRate: 14, taxAmount: 0, total: 0, rubrica: '71.1',
       warehouseId: warehouseId || (warehouses.length > 0 ? warehouses[0].id : ''), 
       itemType: 'Produto', length: 1, width: 1, height: 1,
-      showMetrics: false, withholdingRate: 6.5, withholdingAmount: 0, expiryDate: ''
+      showMetrics: false, withholdingRate: 0, withholdingAmount: 0, expiryDate: ''
     }]);
   };
 
@@ -143,10 +145,19 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({
     const item = newItems[index];
     (item as any)[field] = value;
     
-    if (['quantity', 'unitPrice', 'discount', 'taxRate', 'length', 'width', 'height'].includes(field as string)) {
+    if (['quantity', 'unitPrice', 'discount', 'taxRate', 'length', 'width', 'height', 'itemType'].includes(field as string)) {
         const calc = calculateLineTotals(item.quantity, item.unitPrice, item.discount || 0, item.taxRate || 0, item.length || 1, item.width || 1, item.height || 1);
         item.taxAmount = calc.taxAmount;
         item.total = calc.total;
+
+        // REGRA SUPREMA: Retenção na Fonte 6,5% para Serviços > 20.000 Kz
+        if (item.itemType === 'Serviço' && calc.subtotalItem > 20000) {
+            item.withholdingRate = 6.5;
+            item.withholdingAmount = calc.subtotalItem * 0.065;
+        } else {
+            item.withholdingRate = 0;
+            item.withholdingAmount = 0;
+        }
     }
     setItems(newItems);
   };
@@ -224,7 +235,7 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({
                          </div>
                          <div className="space-y-1">
                              <label className="text-[10px] font-black text-orange-600 uppercase tracking-wider flex items-center gap-1"><ShieldCheck size={10}/> Código Hash (AGT)</label>
-                             <input maxLength={4} className="w-full p-2 border border-orange-200 rounded-lg bg-orange-50 text-sm font-black text-orange-700 uppercase" value={hashCode} onChange={(e) => setHashCode(e.target.value)} placeholder="4 dígitos" />
+                             <input maxLength={4} className="w-full p-2 border border-orange-200 rounded-lg bg-orange-50 text-sm font-black text-orange-700 uppercase" value={hashCode} onChange={(e) => setHashCode(e.target.value)} placeholder="Assinatura" />
                          </div>
                          <div className="space-y-1">
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Centro de Custo (Obra)</label>
@@ -282,12 +293,6 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({
                         <option value="">-- SELECIONAR FORNECEDOR (Puxar da Nuvem) * --</option>
                         {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} (NIF: {s.vatNumber})</option>)}
                     </select>
-                    {selectedSupplier && (
-                        <div className="mt-3 bg-slate-50 p-4 rounded-xl border grid grid-cols-2 gap-2 text-[10px] uppercase font-bold text-slate-600">
-                            <span>Endereço: {selectedSupplier.address}</span>
-                            <span>Tipo: {selectedSupplier.supplierType}</span>
-                        </div>
-                    )}
                 </div>
             </div>
 
@@ -302,14 +307,14 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({
                         <thead className="bg-slate-100 text-slate-500 uppercase text-[10px] font-bold">
                             <tr>
                                 <th className="p-3 w-10 text-center"></th>
-                                <th className="p-3 w-32">Ref/Serial</th>
+                                <th className="p-3 w-28 bg-blue-50 text-blue-800">Tipo Artigo</th>
                                 <th className="p-3">Artigo / Descrição</th>
                                 <th className="p-3 w-32">Rubrica PGC</th>
                                 <th className="p-3 w-40 bg-orange-50">Armazém Destino</th>
                                 <th className="p-3 w-20 text-center">Qtd</th>
                                 <th className="p-3 w-24 text-right">Preço Un.</th>
                                 <th className="p-3 w-16 text-center">IVA %</th>
-                                <th className="p-3 w-16 text-center bg-blue-50 text-blue-700">Desc %</th>
+                                <th className="p-3 w-24 text-right bg-red-50 text-red-700">Retenção</th>
                                 <th className="p-3 w-24 text-right">Total</th>
                                 <th className="p-3 w-10"></th>
                             </tr>
@@ -318,7 +323,16 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({
                             {items.map((item, index) => (
                                 <tr key={item.id} className="hover:bg-orange-50/30 transition-colors">
                                     <td className="p-2 text-center"><Ruler size={16} className="text-slate-300"/></td>
-                                    <td className="p-2"><input className="w-full p-1 border border-slate-200 rounded text-[10px] font-mono focus:ring-1 focus:ring-orange-500 outline-none" value={item.reference || ''} onChange={e => handleUpdateItem(index, 'reference', e.target.value)} placeholder="Ref/Serial"/></td>
+                                    <td className="p-2 bg-blue-50/20">
+                                        <select 
+                                          className="w-full p-1 border border-blue-200 rounded text-[10px] font-black uppercase text-blue-700 focus:ring-1 focus:ring-blue-500 outline-none"
+                                          value={item.itemType}
+                                          onChange={e => handleUpdateItem(index, 'itemType', e.target.value)}
+                                        >
+                                          <option value="Produto">Produto</option>
+                                          <option value="Serviço">Serviço</option>
+                                        </select>
+                                    </td>
                                     <td className="p-2">
                                         <div className="flex flex-col gap-1">
                                             <select className="w-full p-1 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-orange-500 outline-none font-bold text-blue-700 bg-blue-50" onChange={(e) => handleProductSelect(index, e.target.value)} value={item.productId || ''}>
@@ -343,7 +357,12 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({
                                             {taxRates.length === 0 && <><option value={14}>14%</option><option value={0}>Isento</option></>}
                                         </select>
                                     </td>
-                                    <td className="p-2 text-center bg-blue-50/30"><input type="number" className="w-full p-1.5 text-center border border-blue-200 rounded bg-white text-sm font-black text-blue-700" value={item.discount} onChange={(e) => handleUpdateItem(index, 'discount', Number(e.target.value))} /></td>
+                                    <td className="p-2 text-right bg-red-50/30">
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-black text-red-600 uppercase">{item.withholdingRate > 0 ? `${item.withholdingRate}%` : '0%'}</span>
+                                            <span className="text-xs font-black text-slate-700">{formatCurrency(item.withholdingAmount || 0).replace('Kz','')}</span>
+                                        </div>
+                                    </td>
                                     <td className="p-2 text-right font-black text-slate-700 text-sm">{formatCurrency(item.total).replace('Kz','')}</td>
                                     <td className="p-2 text-center"><button onClick={() => handleRemoveItem(index)} className="text-slate-300 hover:text-red-500 p-1"><Trash size={16} /></button></td>
                                 </tr>
@@ -380,8 +399,10 @@ const PurchaseForm: React.FC<PurchaseFormProps> = ({
                         <div className="flex justify-between text-slate-600"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
                         {globalDiscount > 0 && <div className="flex justify-between text-red-600"><span>Desc. Global</span><span>-{formatCurrency(discountGlobalValue)}</span></div>}
                         <div className="flex justify-between text-slate-600 pt-2"><span>Imposto (IVA)</span><span>{formatCurrency(totalTaxAmount)}</span></div>
+                        {totalWithholding > 0 && <div className="flex justify-between text-red-700 pt-2 border-t border-red-100 mt-2"><span>Retenção Total</span><span>-{formatCurrency(totalWithholding)}</span></div>}
+                        
                         <div className="pt-4 mt-4 border-t-2 border-slate-800 flex flex-col items-end gap-1">
-                            <span className="font-bold text-[9px] text-slate-400 uppercase tracking-widest">Total da Compra</span>
+                            <span className="font-bold text-[9px] text-slate-400 uppercase tracking-widest">Total Líquido a Pagar</span>
                             <span className="font-black text-xl text-orange-600 tracking-tighter leading-none">{formatCurrency(totalFinal)}</span>
                         </div>
                     </div>

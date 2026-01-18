@@ -122,6 +122,9 @@ export type ViewState =
   | 'ACCOUNTING_SAFT'
   | 'ACCOUNTING_OPENING_BALANCE'
   | 'ACCOUNTING_ACCOUNT_EXTRACT'
+  | 'ACCOUNTING_WITHHOLDING_GROUP'
+  | 'ACCOUNTING_WITHHOLDING_RECEIVE'
+  | 'ACCOUNTING_WITHHOLDING_PAY'
   | 'HR_GROUP'
   | 'HR'
   | 'HR_EMPLOYEES'
@@ -848,7 +851,7 @@ export interface HotelRoom {
   id: string;
   number: string;
   type: 'SINGLE' | 'DOUBLE' | 'SUITE' | 'MASTER';
-  status: 'AVAILABLE' | 'OCCUPIED' | 'RESERVED' | 'CLEANING' | 'MAINTENANCE';
+  status: 'AVAILABLE' | 'OCCUPIED' | 'RESERVADOS' | 'CLEANING' | 'MAINTENANCE';
   dailyRate: number;
 }
 
@@ -917,21 +920,4 @@ export interface TaxOccurrence {
   date: string;
   description: string;
   user: string;
-}
-
-// Registration Types for multi-step flow
-export type RegistrationStep = 'COMPANY_INFO' | 'LICENSE_SELECTION' | 'CONFIRMATION';
-
-export interface RegistrationFormData {
-    companyName: string;
-    nif: string;
-    adminName: string;
-    location: string;
-    address: string;
-    contact: string;
-    email: string;
-    companyType: string;
-    plan: LicensePlan;
-    period: 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
-    planValue: number;
 }

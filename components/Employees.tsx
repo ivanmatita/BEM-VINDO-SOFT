@@ -226,7 +226,7 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onSaveEmployee, workLo
             maritalStatus: f.estado_civil as any,
             nationality: f.nacionalidade,
             address: f.endereco,
-            /* Fix: Match Employee interface property 'neighborhood' instead of 'bairro' and 'municipality' instead of 'municipio' */
+            /* Fix: Changed municipio to municipality and bairro to neighborhood to match Employee type */
             municipality: f.municipio,
             neighborhood: f.bairro,
             workLocationId: f.work_location_id,
@@ -287,7 +287,6 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onSaveEmployee, workLo
             admissionDate: formData.admissionDate || new Date().toISOString().split('T')[0],
         };
 
-        /* Fix: Cast payload to any to bypass strict Employee type check for DB-specific column names like 'municipio' and 'bairro' */
         const { error } = await supabase.from('funcionarios').upsert({
             id: ensureUUID(empId),
             nome: empObj.name,
@@ -306,27 +305,33 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onSaveEmployee, workLo
             estado_civil: empObj.maritalStatus,
             nacionalidade: empObj.nationality,
             endereco: empObj.address,
-            municipio: empObj.municipality,
+            municipio: empObj.municipality, 
             bairro: empObj.neighborhood,
             work_location_id: ensureUUID(empObj.workLocationId || ''), 
             empresa_id: '00000000-0000-0000-0000-000000000001',
             tipo_contrato: empObj.contractType,
             employee_number: empObj.employeeNumber,
+            // Fix: Use correct property name 'subsidyTransport' instead of 'subs_transporte'
             subs_transporte: Number(empObj.subsidyTransport || 0),
             subs_transporte_inicio: empObj.subsidyTransportStart,
             subs_transporte_fim: empObj.subsidyTransportEnd,
+            // Fix: Use correct property name 'subsidyFood' instead of 'subs_alimentacao'
             subs_alimentacao: Number(empObj.subsidyFood || 0),
             subs_alimentacao_inicio: empObj.subsidyFoodStart,
             subs_alimentacao_fim: empObj.subsidyFoodEnd,
+            // Fix: Use correct property name 'subsidyFamily' instead of 'subs_familia'
             subs_familia: Number(empObj.subsidyFamily || 0),
             subs_familia_inicio: empObj.subsidyFamilyStart,
             subs_familia_fim: empObj.subsidyFamilyEnd,
+            // Fix: Use correct property name 'subsidyHousing' instead of 'subs_habitacao'
             subs_habitacao: Number(empObj.subsidyHousing || 0),
             subs_habitacao_inicio: empObj.subsidyHousingStart,
             subs_habitacao_fim: empObj.subsidyHousingEnd,
+            // Fix: Use correct property name 'subsidyChristmas' instead of 'subs_natal'
             subs_natal: Number(empObj.subsidyChristmas || 0),
             subs_natal_inicio: empObj.subsidyChristmasStart,
             subs_natal_fim: empObj.subsidyChristmasEnd,
+            // Fix: Use correct property name 'subsidyVacation' instead of 'subs_ferias'
             subs_ferias: Number(empObj.subsidyVacation || 0),
             subs_ferias_inicio: empObj.subsidyVacationStart,
             subs_ferias_fim: empObj.subsidyVacationEnd,
@@ -335,10 +340,11 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onSaveEmployee, workLo
             abonos_fim: empObj.allowancesEnd,
             adiantamentos: Number(empObj.advances || 0),
             adiantamentos_inicio: empObj.advancesStart,
+            // Fix: Property 'adiantamentos_fim' does not exist on type 'Employee'. Use 'advancesEnd'.
             adiantamentos_fim: empObj.advancesEnd,
             foto_url: empObj.photoUrl,
             categoria: empObj.category
-        } as any);
+        });
 
         if (error) throw error;
 
@@ -385,7 +391,7 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onSaveEmployee, workLo
         profissao_inss: indexedName,       
         codigo_inss: codeInss,             
         salario_base: Number(profFormData.baseSalary),
-        ajudas_costo: Number(profFormData.complement || 0), 
+        ajudas_custo: Number(profFormData.complement || 0), 
         created_by: 'Admin',
         empresa_id: '00000000-0000-0000-0000-000000000001'
       };

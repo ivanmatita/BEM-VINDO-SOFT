@@ -8,7 +8,7 @@ import {
   Scale, Paperclip, Monitor, BarChart3, GraduationCap,
   ClipboardCheck, ScrollText, UserCheck, School, Hotel, 
   CookingPot, BedDouble, Calendar, FolderArchive, ChevronLeft, Menu,
-  UtensilsCrossed, FileSearch, TrendingUp, Contact2
+  UtensilsCrossed, FileSearch, TrendingUp, Contact2, ShieldAlert
 } from 'lucide-react';
 import { ViewState, User as UserType } from '../types';
 
@@ -124,6 +124,16 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, se
                 { id: 'ACCOUNTING_RUBRICAS_SALES', label: 'Ajustar Vendas' },
                 { id: 'ACCOUNTING_RUBRICAS_PURCHASES', label: 'Ajustar Compras' }
             ]
+        },
+        { 
+          id: 'ACCOUNTING_WITHHOLDING_GROUP', 
+          label: 'Mapas Retenção na Fonte', 
+          icon: ShieldAlert,
+          isSubheader: true,
+          children: [
+              { id: 'ACCOUNTING_WITHHOLDING_RECEIVE', label: 'Retenção Fonte a Receber' },
+              { id: 'ACCOUNTING_WITHHOLDING_PAY', label: 'Retenção Fonte a Pagar' }
+          ]
         },
         { id: 'ACCOUNTING_MAPS', label: 'Mapas Contabilísticos', icon: Table },
         { id: 'ACCOUNTING_DECLARATIONS', label: 'Modelo 7' },

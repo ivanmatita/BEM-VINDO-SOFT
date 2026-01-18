@@ -291,7 +291,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
   return (
     <div className="max-w-[1600px] mx-auto space-y-4 animate-in fade-in duration-500 pb-20 relative px-4 sm:px-6">
       {showClientModal && (
-          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95">
                   <div className="bg-slate-900 text-white p-5 flex justify-between items-center sticky top-0 z-10">
                       <h3 className="font-bold text-lg flex items-center gap-2 uppercase tracking-tighter"><UserPlus size={20}/> Registar Cliente na Cloud</h3>
@@ -475,7 +475,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                                 <th className="p-3 w-10 text-center"></th>
                                 <th className="p-3 w-20">Tipo</th>
                                 <th className="p-3 w-32">Ref</th>
-                                <th className="p-3">Artigo / Descrição</th>
+                                <th className="p-3">Artigo / Descrição (Stock Geral)</th>
                                 <th className="p-3 w-32 text-center bg-blue-50 text-blue-800">Data Valor</th>
                                 <th className="p-3 w-20 text-center">Qtd</th>
                                 <th className="p-3 w-28 text-center">Unidade</th>
@@ -500,7 +500,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                                                         <option value="">-- SELECIONAR ARTIGO (STOCK REAL) * --</option>
                                                         {products.map(p => (
                                                           <option key={p.id} value={p.id}>
-                                                            {p.id.substring(0,8).toUpperCase()} | {p.name} | {p.stock <= 0 ? 'SEM STOCK' : `STOCK: ${p.stock} ${p.unit}`} | {p.stock < 0 ? 'NEGATIVO' : 'EM STOCK'}
+                                                            {p.name} {p.barcode ? `[${p.barcode}]` : ''} - Stock: {p.stock} {p.unit}
                                                           </option>
                                                         ))}
                                                     </select>
