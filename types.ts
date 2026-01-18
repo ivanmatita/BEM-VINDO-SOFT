@@ -99,6 +99,7 @@ export type ViewState =
   | 'PURCHASE_ANALYSIS' 
   | 'STOCK_GROUP' 
   | 'STOCK' 
+  | 'STOCK_PRODUCTS'
   | 'FINANCE_GROUP' 
   | 'FINANCE_CASH' 
   | 'FINANCE_MAPS' 

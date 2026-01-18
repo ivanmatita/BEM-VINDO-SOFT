@@ -88,7 +88,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, se
     },
     { id: 'STOCK_GROUP', label: 'Stocks & Inventário', icon: Package, hasSubmenu: true,
       children: [
-        { id: 'STOCK', label: 'Gestão de Artigos' }
+        { id: 'STOCK', label: 'Gestão de Artigos' },
+        { id: 'STOCK_PRODUCTS', label: 'Produtos' }
       ]
     }, 
     { id: 'FINANCE_GROUP', label: 'Finanças', icon: CreditCard, hasSubmenu: true,

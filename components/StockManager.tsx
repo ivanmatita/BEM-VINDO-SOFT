@@ -7,7 +7,7 @@ import {
   Package, Plus, Trash2, Box, X, MapPin, BarChart3, Database, RefreshCw, Save, 
   CreditCard, User, Phone, List, ShoppingBag, Calculator, CheckCircle, 
   Monitor, ArrowRightLeft, Edit2, AlertTriangle, Search, AlignJustify, Percent,
-  Loader2, PlusCircle, Calendar, ImageIcon, Upload, ShoppingCart
+  Loader2, PlusCircle, Calendar, ImageIcon, Upload, ShoppingCart, Layers, Tag
 } from 'lucide-react';
 import PurchaseForm from './PurchaseForm';
 
@@ -30,15 +30,16 @@ interface StockManagerProps {
   purchases?: Purchase[];
   suppliers?: Supplier[];
   onSavePurchase?: (purchase: Purchase) => void;
+  initialTab?: 'DASHBOARD' | 'STOCK_GERAL' | 'WAREHOUSES' | 'PRODUTOS';
 }
 
 const StockManager: React.FC<StockManagerProps> = ({ 
   products, setProducts, warehouses, setWarehouses, 
   movements: localMovements, onStockMovement, onCreateDocument, onOpenReportOverlay,
   clients = [], warehouses: propWarehouses = [], invoices = [], purchases = [],
-  suppliers = [], onSavePurchase, cashRegisters = [], workLocations = []
+  suppliers = [], onSavePurchase, cashRegisters = [], workLocations = [], initialTab = 'DASHBOARD'
 }) => {
-  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'STOCK_GERAL' | 'WAREHOUSES'>('DASHBOARD');
+  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'STOCK_GERAL' | 'WAREHOUSES' | 'PRODUTOS'>(initialTab);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingMovements, setIsLoadingMovements] = useState(false);
   const [cloudMovements, setCloudMovements] = useState<StockMovement[]>([]);
@@ -61,6 +62,10 @@ const StockManager: React.FC<StockManagerProps> = ({
     fetchCloudData();
     fetchMovementsCloud();
   }, []);
+
+  useEffect(() => {
+      if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
 
   async function fetchMovementsCloud() {
     setIsLoadingMovements(true);
@@ -140,16 +145,16 @@ const StockManager: React.FC<StockManagerProps> = ({
   }, [cloudMovements, localMovements, invoices, purchases]);
 
   const stockStats = useMemo(() => {
-    const stats: Record<string, { in: number, out: number, balance: number, name: string, artNo: string, barcode?: string, closestExpiry?: string, itemType?: string, imageUrl?: string }> = {};
+    const stats: Record<string, { in: number, out: number, balance: number, name: string, artNo: string, barcode?: string, closestExpiry?: string, itemType?: string, imageUrl?: string, warehouseId?: string, price?: number }> = {};
     
     products.forEach(p => {
-        stats[p.id] = { in: 0, out: 0, balance: 0, name: p.name, artNo: p.id.substring(0,8).toUpperCase(), barcode: p.barcode, closestExpiry: '', itemType: 'Produto', imageUrl: p.imageUrl };
+        stats[p.id] = { in: 0, out: 0, balance: 0, name: p.name, artNo: p.id.substring(0,8).toUpperCase(), barcode: p.barcode, closestExpiry: '', itemType: 'Produto', imageUrl: p.imageUrl, warehouseId: p.warehouseId, price: p.price };
     });
 
     allMovements.forEach(m => {
         const id = m.productId || m.productName; 
         if (!stats[id]) {
-            stats[id] = { in: 0, out: 0, balance: 0, name: m.productName, artNo: 'Manual', barcode: '---', closestExpiry: '', itemType: m.itemType, imageUrl: '' };
+            stats[id] = { in: 0, out: 0, balance: 0, name: m.productName, artNo: 'Manual', barcode: '---', closestExpiry: '', itemType: m.itemType, imageUrl: '', warehouseId: m.warehouseId };
         }
 
         if (m.type === 'ENTRY') {
@@ -267,6 +272,57 @@ const StockManager: React.FC<StockManagerProps> = ({
     </div>
   );
 
+  const renderProdutosConsolidados = () => {
+    // REGRA DEFINITIVA: Listar apenas produtos com entrada e quantidade total > 0
+    const statsList = Object.keys(stockStats)
+      .map(id => ({ id, ...stockStats[id] }))
+      .filter(item => item.in > 0 && item.balance > 0);
+
+    return (
+        <div className="bg-white border border-slate-300 rounded shadow-lg overflow-hidden animate-in zoom-in-95">
+            <div className="bg-blue-900 text-white p-4 flex justify-between items-center">
+                <h3 className="font-black text-sm uppercase flex items-center gap-2"><Layers size={18} className="text-blue-300"/> Camada de Consolidação Oficial: Produtos</h3>
+                <span className="text-[10px] font-bold bg-blue-800 px-3 py-1 rounded-full uppercase">Fonte Única Novo Documento</span>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-[10px] text-left border-collapse">
+                    <thead className="bg-slate-50 text-slate-600 font-black uppercase border-b-2 border-slate-300">
+                        <tr>
+                            <th className="p-3">ID</th>
+                            <th className="p-3">Nome do Produto</th>
+                            <th className="p-3">Código</th>
+                            <th className="p-3">Armazém</th>
+                            <th className="p-3 text-right">Qtd Disponível</th>
+                            <th className="p-3 text-right">Preço de Venda</th>
+                            <th className="p-3 text-center">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                        {statsList.map((item) => (
+                            <tr key={item.id} className="hover:bg-blue-50 transition-colors">
+                                <td className="p-3 font-mono text-slate-400">{item.id.substring(0,8)}</td>
+                                <td className="p-3 font-black text-slate-800 uppercase">{item.name}</td>
+                                <td className="p-3 font-bold text-slate-500">{item.barcode || '---'}</td>
+                                <td className="p-3">
+                                    {propWarehouses.find(w => w.id === item.warehouseId)?.name || 'Central'}
+                                </td>
+                                <td className="p-3 text-right font-black text-blue-700 bg-blue-50/30">{item.balance}</td>
+                                <td className="p-3 text-right font-black text-slate-900">{formatCurrency(item.price || 0)}</td>
+                                <td className="p-3 text-center">
+                                    <span className="bg-emerald-600 text-white px-2 py-0.5 rounded text-[8px] font-black uppercase">Ativo</span>
+                                </td>
+                            </tr>
+                        ))}
+                        {statsList.length === 0 && (
+                            <tr><td colSpan={7} className="p-20 text-center text-slate-400 italic">Aguardando entradas de stock para consolidar produtos.</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+  };
+
   const renderStockGeral = () => {
       const statsList = Object.keys(stockStats).map(id => ({ id, ...stockStats[id] }));
       return (
@@ -360,6 +416,9 @@ const StockManager: React.FC<StockManagerProps> = ({
                 </button>
                 <div className="h-6 w-px bg-slate-300 mx-2"></div>
                 <button onClick={() => { setActiveTab('DASHBOARD'); setShowPurchaseFormInCloud(false); }} className={`px-4 py-2 rounded-lg text-xs font-bold border transition ${activeTab === 'DASHBOARD' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200'}`}>Painel</button>
+                <button onClick={() => { setActiveTab('PRODUTOS'); setShowPurchaseFormInCloud(false); }} className={`px-4 py-2 rounded-lg text-xs font-bold border transition flex items-center gap-2 ${activeTab === 'PRODUTOS' ? 'bg-blue-700 text-white border-blue-700' : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50'}`}>
+                    <Layers size={14}/> Produtos
+                </button>
                 <button onClick={() => { setActiveTab('STOCK_GERAL'); setShowPurchaseFormInCloud(false); }} className={`px-4 py-2 rounded-lg text-xs font-bold border transition flex items-center gap-2 ${activeTab === 'STOCK_GERAL' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'}`}>
                     <Monitor size={14}/> Stock Geral
                 </button>
@@ -385,6 +444,7 @@ const StockManager: React.FC<StockManagerProps> = ({
         ) : (
             <>
                 {activeTab === 'DASHBOARD' && renderDashboard()}
+                {activeTab === 'PRODUTOS' && renderProdutosConsolidados()}
                 {activeTab === 'STOCK_GERAL' && renderStockGeral()}
                 {activeTab === 'WAREHOUSES' && (
                     <div className="bg-white border border-slate-300 rounded shadow-sm overflow-hidden animate-in zoom-in-95">
@@ -583,7 +643,7 @@ const StockManager: React.FC<StockManagerProps> = ({
                     <div className="p-6 bg-slate-50 flex justify-end gap-3 border-t-2 border-slate-100">
                         <button onClick={() => setShowWarehouseModal(false)} className="px-8 py-3 border-4 border-slate-200 rounded-2xl text-slate-400 hover:bg-white transition uppercase font-black text-[10px]">Cancelar</button>
                         <button onClick={handleSaveWarehouse} disabled={isSaving} className="px-12 py-3 bg-green-600 text-white rounded-2xl font-black uppercase text-[10px] shadow-xl hover:bg-green-700 transition disabled:opacity-50 flex items-center gap-2">
-                            {isSaving ? <RefreshCw className="animate-spin" size={16}/> : <Save size={16}/>} Gravar Armazém
+                            {isSaving ? <Loader2 className="animate-spin" size={16}/> : <Save size={16}/>} Gravar Armazém
                         </button>
                     </div>
                 </div>

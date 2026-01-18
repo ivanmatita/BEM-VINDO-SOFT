@@ -41,7 +41,7 @@ const ClientList: React.FC<ClientListProps> = ({
 
   useEffect(() => {
     inicializarSupabase();
-  }, []);
+  }, [currentCompany]);
 
   useEffect(() => {
     if (initialSelectedClientId) {
@@ -56,11 +56,17 @@ const ClientList: React.FC<ClientListProps> = ({
   async function inicializarSupabase() {
     setIsLoading(true);
     try {
-      let { data: empresas } = await supabase.from('empresas').select('id').limit(1);
-      if (empresas && empresas.length > 0) {
-        setActiveEmpresaId(empresas[0].id);
+      // CORREÇÃO: Usar prioritariamente o ID da empresa vindo da prop ou sessão para evitar erro de FK
+      const currentId = currentCompany?.id || companyId;
+      if (currentId) {
+          setActiveEmpresaId(currentId);
       } else {
-        setActiveEmpresaId('00000000-0000-0000-0000-000000000001');
+          let { data: empresas } = await supabase.from('empresas').select('id').limit(1);
+          if (empresas && empresas.length > 0) {
+            setActiveEmpresaId(empresas[0].id);
+          } else {
+            setActiveEmpresaId('00000000-0000-0000-0000-000000000001');
+          }
       }
       await carregarClientesSupabase();
     } catch (err: any) {
@@ -169,6 +175,9 @@ const ClientList: React.FC<ClientListProps> = ({
     e.preventDefault();
     if (!formData.name || !formData.vatNumber) return alert('Contribuinte e Nome são obrigatórios');
     
+    // CORREÇÃO: Atribuição rigorosa do empresa_id para evitar erro de foreign key
+    const idDaEmpresaValida = activeEmpresaId || currentCompany?.id || '00000000-0000-0000-0000-000000000001';
+
     setIsLoading(true);
     const payload: any = {
       nome: formData.name,
@@ -186,7 +195,7 @@ const ClientList: React.FC<ClientListProps> = ({
       iban: formData.iban || '',
       conta_partilhada: formData.isAccountShared || false,
       saldo_inicial: Number(formData.initialBalance || 0),
-      empresa_id: activeEmpresaId
+      empresa_id: idDaEmpresaValida // CORREÇÃO: fk_clientes_empresa
     };
 
     try {
@@ -200,7 +209,7 @@ const ClientList: React.FC<ClientListProps> = ({
       setView('LIST');
       alert("Cliente registado com sucesso!");
     } catch (err: any) {
-      alert("Erro ao salvar: " + err.message);
+      alert("Erro ao salvar cliente: " + err.message);
     } finally {
       setIsLoading(false);
     }

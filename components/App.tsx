@@ -130,7 +130,7 @@ const App = () => {
   const [selectedProject, setSelectedProject] = useState<WorkProject | null>(null);
 
   const certifiedInvoices = useMemo(() => invoices.filter(i => i.isCertified), [invoices]);
-  const validPurchases = useMemo(() => purchases.filter(p => p.status !== 'CANCELLED'), [purchases]);
+  const validPurchases = useMemo(() => purchases.filter(p => p.status !== 'PENDING'), [purchases]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -411,7 +411,7 @@ const App = () => {
                 unit: 'un',
                 category: 'Geral',
                 stock: Number(p.stock || 0), 
-                warehouseId: '',
+                warehouseId: p.armazem_id || '',
                 priceTableId: 'pt1',
                 minStock: 0,
                 barcode: p.barcode,
@@ -723,6 +723,7 @@ const App = () => {
           console.error("Erro fatal na sincronização:", err.message); 
       } finally { 
           setIsLoading(false); 
+          fetchProductsCloud(); // Recarregar stock após baixa
       }
       
       if(finalInv.source !== 'POS') setCurrentView('INVOICES');
@@ -817,6 +818,7 @@ const App = () => {
         console.error("Erro ao sincronizar compra:", err); 
       } finally { 
         setIsLoading(false); 
+        fetchProductsCloud(); // Recarregar stock após entrada
       }
       setCurrentView('STOCK');
   };
@@ -1072,10 +1074,32 @@ const App = () => {
       case 'CREATE_INVOICE': return <InvoiceForm onSave={handleSaveInvoice} onCancel={()=>setCurrentView('INVOICES')} onViewList={()=>setCurrentView('INVOICES')} onAddWorkLocation={()=>{}} onSaveClient={handleSaveClient} onSaveWorkLocation={wl => setWorkLocations([...workLocations, wl])} clients={clients} products={products} workLocations={workLocations} cashRegisters={cashRegisters} series={series} warehouses={warehouses} initialType={invoiceInitialType} initialData={invoiceInitialData} currentUser={currentUser.name} currentUserId={currentUser.id} currentCompany={currentCompany} taxRates={taxRates.filter(t => t.isActive)} metrics={metrics} />;
       case 'PURCHASES': return <PurchaseList purchases={purchases} onDelete={handleDeletePurchase} onUpdate={p => { setPurchaseInitialData(p); setCurrentView('CREATE_PURCHASE'); }} onCreateNew={() => { setPurchaseInitialData(undefined); setCurrentView('CREATE_PURCHASE'); }} onUpload={()=>{}} onSaveSupplier={s => setSuppliers([...suppliers, s])} />;
       case 'CREATE_PURCHASE': return <PurchaseForm onSave={handleSavePurchase} onCancel={() => setCurrentView('PURCHASES')} onViewList={() => setCurrentView('PURCHASES')} products={products} workLocations={workLocations} cashRegisters={cashRegisters} suppliers={suppliers} warehouses={warehouses} onSaveSupplier={s => setSuppliers([...suppliers, s])} initialData={purchaseInitialData} currentUser={currentUser.name} currentUserId={currentUser.id} currentCompany={currentCompany} taxRates={taxRates.filter(t => t.isActive)} metrics={metrics} />;
-      case 'CLIENTS': return <ClientList clients={clients} onSaveClient={handleSaveClient} initialSelectedClientId={selectedClientId} onClearSelection={() => setSelectedClientId(null)} currentCompany={currentCompany} invoices={invoices} workLocations={workLocations} />;
+      case 'CLIENTS': return <ClientList clients={clients} onSaveClient={handleSaveClient} initialSelectedClientId={selectedClientId} onClearSelection={() => setSelectedClientId(null)} currentCompany={currentCompany} invoices={invoices} workLocations={workLocations} companyId={currentCompany.id} />;
       case 'SUPPLIERS': return <SupplierList suppliers={suppliers} onSaveSupplier={s => setSuppliers([...suppliers, s])} purchases={validPurchases} workLocations={workLocations} />;
       case 'PURCHASE_ANALYSIS': return <PurchaseAnalysis purchases={validPurchases} />;
-      case 'STOCK': return <StockManager products={products} setProducts={setProducts} warehouses={warehouses} setWarehouses={setWarehouses} priceTables={priceTables} setPriceTables={setPriceTables} movements={stockMovements} invoices={invoices} purchases={purchases} suppliers={suppliers} onSavePurchase={handleSavePurchase} onStockMovement={m => setStockMovements([...stockMovements, m])} onCreateDocument={(t, i, n) => { setInvoiceInitialType(t); setInvoiceInitialData({items: i, notes: n}); setCurrentView('CREATE_INVOICE'); }} onOpenReportOverlay={() => setCurrentView('FINANCE_REPORTS')} cashRegisters={cashRegisters} clients={clients} workLocations={workLocations} series={series} />;
+      case 'STOCK_PRODUCTS':
+      case 'STOCK': 
+        return <StockManager 
+                  products={products} 
+                  setProducts={setProducts} 
+                  warehouses={warehouses} 
+                  setWarehouses={setWarehouses} 
+                  priceTables={priceTables} 
+                  setPriceTables={setPriceTables} 
+                  movements={stockMovements} 
+                  invoices={invoices} 
+                  purchases={purchases} 
+                  suppliers={suppliers} 
+                  onSavePurchase={handleSavePurchase} 
+                  onStockMovement={m => setStockMovements([...stockMovements, m])} 
+                  onCreateDocument={(t, i, n) => { setInvoiceInitialType(t); setInvoiceInitialData({items: i, notes: n}); setCurrentView('CREATE_INVOICE'); }} 
+                  onOpenReportOverlay={() => setCurrentView('FINANCE_REPORTS')} 
+                  cashRegisters={cashRegisters} 
+                  clients={clients} 
+                  workLocations={workLocations} 
+                  series={series} 
+                  initialTab={currentView === 'STOCK_PRODUCTS' ? 'PRODUTOS' : 'DASHBOARD'}
+               />;
       case 'SETTINGS':
         return <Settings 
                   series={series} 
@@ -1186,7 +1210,7 @@ const App = () => {
       case 'SECRETARIA_FORM': return <SecretariaForm onSave={doc => { setSecDocuments([doc, ...secDocuments.filter(d => d.id !== doc.id)]); setCurrentView('SECRETARIA_LIST'); }} onCancel={() => setCurrentView('SECRETARIA_LIST')} series={series} document={invoiceInitialData as any} />;
       
       case 'POS_GROUP':
-      case 'POS': return <POS products={products} clients={clients} invoices={invoices} series={series} cashRegisters={cashRegisters} config={posConfig} onSaveInvoice={handleSaveInvoice} onGoBack={() => setCurrentView('DASHBOARD')} currentUser={currentUser} company={currentCompany} warehouses={warehouses} workLocations={workLocations} />;
+      case 'POS': return <POS products={products.filter(p => p.stock > 0)} clients={clients} invoices={invoices} series={series} cashRegisters={cashRegisters} config={posConfig} onSaveInvoice={handleSaveInvoice} onGoBack={() => setCurrentView('DASHBOARD')} currentUser={currentUser} company={currentCompany} warehouses={warehouses} workLocations={workLocations} />;
       case 'CASH_CLOSURE': return <CashClosure registers={cashRegisters} invoices={invoices} movements={[]} onSaveClosure={c => { setCashClosures([c, ...cashClosures]); fetchCashClosuresCloud(); }} onGoBack={() => setCurrentView('DASHBOARD')} currentUser={currentUser?.name || "Admin"} currentUserId={currentUser?.id || "u1"} />;
       case 'CASH_CLOSURE_HISTORY': return <CashClosureHistory closures={cashClosures} />;
       case 'POS_SETTINGS': return <POSSettings config={posConfig} onSaveConfig={setPosConfig} series={series} clients={clients} />;

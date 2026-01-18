@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Client, Invoice, InvoiceItem, InvoiceStatus, InvoiceType, Product, WorkLocation, PaymentMethod, CashRegister, DocumentSeries, Warehouse, Company, TaxRate, Metric } from '../types';
 import { generateId, formatCurrency, formatDate, generateQrCodeUrl, numberToExtenso } from '../utils';
 import { supabase } from '../services/supabaseClient';
-import { Plus, Trash, Save, ArrowLeft, Lock, FileText, List, X, Calendar, CreditCard, ChevronDown, Ruler, Users, Briefcase, Percent, DollarSign, RefreshCw, Scale, ShieldCheck, Hash, Tag, UserPlus, Loader2, Package, AlertCircle } from 'lucide-react';
+import { Plus, Trash, Save, ArrowLeft, Lock, FileText, List, X, Calendar, CreditCard, ChevronDown, Ruler, Users, Briefcase, Percent, DollarSign, RefreshCw, Scale, ShieldCheck, Hash, Tag, UserPlus, Loader2, Package, AlertCircle, Search, Layers } from 'lucide-react';
 
 interface InvoiceFormProps {
   onSave: (invoice: Invoice, seriesId: string, action?: 'PRINT' | 'CERTIFY') => void;
@@ -169,6 +169,41 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     }
   };
 
+  // REGRA RIGOROSA: Selecionar Saída de Stock utilizando obrigatoriamente os produtos consolidados
+  const handleQuickStockSelect = (productId: string) => {
+      if (isRestricted || !productId) return;
+      
+      // REGRA: Buscar da fonte única e obrigatória: Stock -> Produtos
+      // Neste contexto, a prop 'products' contém a lista consolidada de produtos com stock ativo
+      const product = products.find(p => p.id === productId && p.stock > 0);
+      
+      if (product) {
+          const newItem: InvoiceItem = {
+              id: generateId(),
+              productId: product.id,
+              description: product.name, // Preenchimento Automático
+              reference: product.barcode || product.id.substring(0,6).toUpperCase(),
+              quantity: 1,
+              length: 1,
+              width: 1,
+              height: 1,
+              unit: product.unit || 'un',
+              unitPrice: product.price, // Preço Automático
+              discount: 0,
+              taxRate: 14,
+              total: product.price,
+              type: 'PRODUCT',
+              valueDate: today,
+              showMetrics: false,
+              rubrica: '61.1'
+          };
+          setItems([...items, newItem]);
+          alert(`Artigo "${product.name}" adicionado da fonte consolidada Stock -> Produtos.`);
+      } else {
+          alert("Erro: O produto selecionado não possui stock disponível na fonte consolidada.");
+      }
+  };
+
   const handleUpdateItem = (index: number, field: keyof InvoiceItem, value: any) => {
     if (isRestricted) return;
     const newItems = [...items];
@@ -189,6 +224,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
     e.preventDefault();
     if (!newClient.name || !newClient.vatNumber) return alert('Contribuinte e Nome são obrigatórios');
     
+    // CORREÇÃO DEFINITIVA: Garantir empresa_id da sessão ativa para evitar erro de FK
+    const activeCompId = currentCompany?.id || '00000000-0000-0000-0000-000000000001';
+
     setIsCreatingClient(true);
     try {
       const { data, error } = await supabase
@@ -207,7 +245,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
           web_page: newClient.webPage,
           tipo_cliente: newClient.clientType,
           saldo_inicial: Number(newClient.initialBalance || 0),
-          empresa_id: currentCompany?.id || '00000000-0000-0000-0000-000000000001'
+          empresa_id: activeCompId // CORREÇÃO: fk_clientes_empresa
         })
         .select();
 
@@ -364,6 +402,39 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <div className="xl:col-span-10 space-y-6">
+            
+            {/* FONTE ÚNICA E OBRIGATÓRIA: Buscar exclusivamente de STOCK -> PRODUTOS */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-blue-50 border-b border-blue-100 px-5 py-3 flex items-center gap-2">
+                    <Layers size={14} className="text-blue-600"/>
+                    <h3 className="font-bold text-blue-700 text-sm uppercase">Selecionar Saída de Stock (Fonte: Stock -> Produtos)</h3>
+                </div>
+                <div className="p-5">
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <select 
+                                className="w-full p-3 border-2 border-blue-100 rounded-xl text-sm font-bold bg-white focus:ring-2 focus:ring-blue-200 outline-none shadow-sm transition-all text-blue-800"
+                                onChange={(e) => handleQuickStockSelect(e.target.value)}
+                                value=""
+                                disabled={isRestricted}
+                            >
+                                <option value="">-- PESQUISAR PRODUTOS CONSOLIDADOS (STOCK > 0) --</option>
+                                {products.filter(p => p.stock > 0).map(p => (
+                                    <option key={p.id} value={p.id}>
+                                        📦 {p.name} | COD: {p.barcode || '---'} | DISPONÍVEL: {p.stock} {p.unit} | PREÇO: {formatCurrency(p.price)}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="w-48 bg-blue-50 rounded-xl border border-blue-100 flex flex-col items-center justify-center p-2 text-center">
+                            <span className="text-[9px] font-black text-blue-400 uppercase leading-none">Artigos Consolidados</span>
+                            <span className="text-lg font-black text-blue-700">{products.filter(p => p.stock > 0).length}</span>
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest italic">Integração Direta com Baixa de Stock por Armazém</p>
+                </div>
+            </div>
+
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center gap-2">
                     <FileText size={14} className="text-blue-600"/>
@@ -475,7 +546,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                                 <th className="p-3 w-10 text-center"></th>
                                 <th className="p-3 w-20">Tipo</th>
                                 <th className="p-3 w-32">Ref</th>
-                                <th className="p-3">Artigo / Descrição (Stock Geral)</th>
+                                <th className="p-3">Artigo / Descrição (Fonte: Stock -> Produtos)</th>
                                 <th className="p-3 w-32 text-center bg-blue-50 text-blue-800">Data Valor</th>
                                 <th className="p-3 w-20 text-center">Qtd</th>
                                 <th className="p-3 w-28 text-center">Unidade</th>
@@ -497,8 +568,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({
                                             <div className="flex flex-col gap-1">
                                                 {item.type === 'PRODUCT' && (
                                                     <select className="w-full p-1 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none font-bold text-blue-700 bg-blue-50" onChange={(e) => handleProductSelect(index, e.target.value)} value={item.productId || ''} disabled={isRestricted}>
-                                                        <option value="">-- SELECIONAR ARTIGO (STOCK REAL) * --</option>
-                                                        {products.map(p => (
+                                                        <option value="">-- SELECIONAR ARTIGO (FONTE: PRODUTOS CONSOLIDADOS) * --</option>
+                                                        {products.filter(p => p.stock > 0).map(p => (
                                                           <option key={p.id} value={p.id}>
                                                             {p.name} {p.barcode ? `[${p.barcode}]` : ''} - Stock: {p.stock} {p.unit}
                                                           </option>
