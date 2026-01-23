@@ -30,12 +30,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, isOpen, se
   const menuItems = [
     { id: 'DASHBOARD', label: 'Painel de Bordo', icon: LayoutDashboard },
     { id: 'WORKSPACE', label: 'Local de Trabalho', icon: BriefcaseBusiness },
+    { id: 'CALCULATOR', label: 'Calculadora', icon: Calculator }, // Adicionado aqui
     { id: 'SECRETARIA_LIST', label: 'Secretaria Beta', icon: Paperclip },
     { id: 'ARCHIVES', label: 'Arquivos', icon: FolderArchive },
     
     { id: 'POS_GROUP', label: 'Ponto de Venda', icon: Monitor, hasSubmenu: true, 
       children: [
-        { id: 'POS', label: 'Frente de Caixa (POS)' },
+        { id: 'POS', label: 'Ponto de Venda (POS)' },
         { id: 'CASH_CLOSURE', label: 'Fecho de Caixa' },
         { id: 'CASH_CLOSURE_HISTORY', label: 'Fechos Efetuados' },
         { id: 'POS_SETTINGS', label: 'Configurações POS' }

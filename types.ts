@@ -1,4 +1,5 @@
 
+
 export enum InvoiceStatus {
   DRAFT = 'Rascunho',
   PENDING = 'Pendente',
@@ -54,115 +55,17 @@ export type CompanyStatus = 'TEST' | 'ACTIVE' | 'SUSPENDED';
 
 export type AppLanguage = 'PT' | 'EN' | 'FR';
 
-export interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  date: string; 
-  time?: string;
-  completed: boolean;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH';
-}
-
-export interface Bank {
+export interface Empresa {
   id: string;
   nome: string;
-  sigla: string;
-  iban: string;
-  swift: string;
-  accountNumber?: string;
-  nib?: string;
+  nif: string;
+  endereco: string;
+  email_admin: string;
+  telefone: string;
+  plano: LicensePlan;
+  status: CompanyStatus;
+  created_at?: string;
 }
-
-export interface Metric {
-  id: string;
-  nome: string;
-  sigla: string;
-}
-
-export type ViewState = 
-  | 'DASHBOARD' 
-  | 'WORKSPACE' 
-  | 'PROJECT_REPORT'
-  | 'SECRETARIA_LIST' 
-  | 'SECRETARIA_FORM'
-  | 'ARCHIVES'
-  | 'INVOICES_GROUP' 
-  | 'CREATE_INVOICE' 
-  | 'INVOICES' 
-  | 'ACCOUNTING_REGULARIZATION' 
-  | 'CLIENTS' 
-  | 'PURCHASES_GROUP' 
-  | 'CREATE_PURCHASE' 
-  | 'PURCHASES' 
-  | 'SUPPLIERS' 
-  | 'PURCHASE_ANALYSIS' 
-  | 'STOCK_GROUP' 
-  | 'STOCK' 
-  | 'STOCK_PRODUCTS'
-  | 'FINANCE_GROUP' 
-  | 'FINANCE_CASH' 
-  | 'FINANCE_MAPS' 
-  | 'FINANCE_REPORTS' 
-  | 'FINANCE_TAX_DOCS'
-  | 'ACCOUNTING_GROUP' 
-  | 'ACCOUNTING_VAT' 
-  | 'ACCOUNTING_PGC' 
-  | 'ACCOUNTING_CLASSIFY_GROUP'
-  | 'ACCOUNTING_CLASSIFY_SALES'
-  | 'ACCOUNTING_CLASSIFY_PURCHASES'
-  | 'ACCOUNTING_CLASSIFY_SALARY_PROC'
-  | 'ACCOUNTING_CLASSIFY_SALARY_PAY' 
-  | 'ACCOUNTING_RUBRICAS_GROUP'
-  | 'ACCOUNTING_RUBRICAS_SALES'
-  | 'ACCOUNTING_RUBRICAS_PURCHASES'
-  | 'ACCOUNTING_MAPS'
-  | 'ACCOUNTING_DECLARATIONS'
-  | 'ACCOUNTING_TAXES'
-  | 'ACCOUNTING_CALC'
-  | 'ACCOUNTING_SAFT'
-  | 'ACCOUNTING_OPENING_BALANCE'
-  | 'ACCOUNTING_ACCOUNT_EXTRACT'
-  | 'ACCOUNTING_WITHHOLDING_GROUP'
-  | 'ACCOUNTING_WITHHOLDING_RECEIVE'
-  | 'ACCOUNTING_WITHHOLDING_PAY'
-  | 'HR_GROUP'
-  | 'HR'
-  | 'HR_EMPLOYEES'
-  | 'HR_PERFORMANCE'
-  | 'HR_CONTRACT_ISSUE'
-  | 'HR_TRANSFER_ORDER'
-  | 'HR_EFFECTIVENESS'
-  | 'HR_SALARY_LIST'
-  | 'HR_ID_CARDS'
-  | 'SETTINGS'
-  | 'SETTINGS_TAX_TABLE'
-  | 'POS_GROUP'
-  | 'POS'
-  | 'CASH_CLOSURE'
-  | 'CASH_CLOSURE_HISTORY'
-  | 'POS_SETTINGS'
-  | 'SCHOOL_GROUP'
-  | 'SCHOOL_STUDENTS'
-  | 'SCHOOL_TEACHERS'
-  | 'SCHOOL_ACADEMIC'
-  | 'SCHOOL_DOCUMENTS'
-  | 'SCHOOL_REPORTS'
-  | 'RESTAURANT_GROUP'
-  | 'RESTAURANT_MENU'
-  | 'RESTAURANT_TABLES'
-  | 'RESTAURANT_KDS'
-  | 'RESTAURANT_PRODUCTION'
-  | 'HOTEL_GROUP'
-  | 'HOTEL_ROOMS'
-  | 'HOTEL_RESERVATIONS'
-  | 'HOTEL_CHECKIN'
-  | 'HOTEL_GOVERNANCE'
-  | 'REPORTS_GROUP'
-  | 'REPORTS_MONTHLY'
-  | 'REPORTS_YEARLY'
-  | 'REPORTS_DEBTS'
-  | 'REPORTS_MOVEMENTS';
 
 export interface User {
   id: string;
@@ -173,7 +76,7 @@ export interface User {
   phone?: string;
   accessValidity?: string;
   role: 'ADMIN' | 'OPERATOR' | 'ACCOUNTANT';
-  companyId: string;
+  companyId: string; // empresa_id no banco
   permissions: ViewState[];
   createdAt: string;
   avatar?: string;
@@ -220,6 +123,7 @@ export interface Client {
   iban?: string;
   isAccountShared?: boolean;
   transactions: any[];
+  empresa_id?: string;
 }
 
 export interface TaxRate {
@@ -264,7 +168,6 @@ export interface Employee {
   contractClauses?: string[];
   isCashier?: boolean;
   
-  // Subsidies
   subsidyTransport: number;
   subsidyTransportStart?: string;
   subsidyTransportEnd?: string;
@@ -291,7 +194,6 @@ export interface Employee {
   subsidyOtherStart?: string;
   subsidyOtherEnd?: string;
   
-  // Financial Adjustments
   salaryAdjustments?: number;
   penalties?: number;
   advances?: number;
@@ -301,11 +203,9 @@ export interface Employee {
   allowancesStart?: string;
   allowancesEnd?: string;
   
-  // UI States
   isMagic?: boolean;
   isItemChecked?: boolean;
   
-  // Others
   photoUrl?: string;
   bankAccount?: string;
   bankName?: string;
@@ -326,6 +226,7 @@ export interface Employee {
   turnoverRisk?: 'Low' | 'Medium' | 'High';
   performanceScore?: number;
   category?: string;
+  empresa_id?: string;
 }
 
 export interface SalarySlip {
@@ -347,7 +248,7 @@ export interface SalarySlip {
   inss: number;
   irt: number;
   netTotal: number;
-  transferred?: boolean; // New Field for Transfer tracking
+  transferred?: boolean;
   attendanceDetails?: {
     folgas: number;
     servicos: number;
@@ -478,6 +379,7 @@ export interface Invoice {
   processedAt?: string;
   targetWarehouseId?: string;
   deliveryAddress?: string;
+  empresa_id?: string;
 }
 
 export interface PurchaseItem {
@@ -531,6 +433,7 @@ export interface Purchase {
   integrationStatus?: IntegrationStatus;
   processedAt?: string;
   retentionType?: 'NONE' | 'CAT_50' | 'CAT_100';
+  empresa_id?: string;
 }
 
 export interface Product {
@@ -546,6 +449,7 @@ export interface Product {
   minStock?: number;
   barcode?: string;
   imageUrl?: string;
+  empresa_id?: string;
 }
 
 export interface Warehouse {
@@ -556,6 +460,7 @@ export interface Warehouse {
   managerName?: string;
   contact?: string;
   observations?: string;
+  empresa_id?: string;
 }
 
 export interface PriceTable {
@@ -586,6 +491,7 @@ export interface CashRegister {
   initialBalance: number;
   operatorId?: string;
   notes?: string;
+  empresa_id?: string;
 }
 
 export interface DocumentSeries {
@@ -623,6 +529,7 @@ export interface Supplier {
   supplierType: string;
   accountBalance: number;
   transactions: any[];
+  empresa_id?: string;
 }
 
 export interface CashMovement {
@@ -668,6 +575,7 @@ export interface SecretariaDocument {
   createdAt: string;
   isLocked: boolean;
   departamento: string;
+  empresa_id?: string;
 }
 
 export interface VatSettlement {
@@ -758,7 +666,6 @@ export interface DisciplinaryAction {
   severity: 'Low' | 'Medium' | 'High';
 }
 
-// School
 export interface SchoolStudent {
   id: string;
   registrationNumber: string;
@@ -838,7 +745,6 @@ export interface SchoolOccurrence {
   description: string;
 }
 
-// Restaurant
 export interface RestaurantTable {
   id: string;
   number: number;
@@ -847,7 +753,6 @@ export interface RestaurantTable {
   currentOrderValue?: number;
 }
 
-// Hotel
 export interface HotelRoom {
   id: string;
   number: string;
@@ -879,7 +784,6 @@ export interface HotelConsumption {
   date: string;
 }
 
-// Archives
 export interface ArchiveDocument {
   id: string;
   name: string;
@@ -901,7 +805,6 @@ export interface ArchiveOccurrence {
   user: string;
 }
 
-// Tax
 export interface TaxDocument {
   id: string;
   dateDoc: string;
@@ -922,3 +825,105 @@ export interface TaxOccurrence {
   description: string;
   user: string;
 }
+
+// Fix: Add missing Bank and Metric interfaces
+export interface Bank {
+  id: string;
+  nome: string;
+  sigla: string;
+  iban: string;
+  swift?: string;
+  accountNumber?: string;
+  nib?: string;
+}
+
+export interface Metric {
+  id: string;
+  nome: string;
+  sigla: string;
+}
+
+export type ViewState = 
+  | 'DASHBOARD' 
+  | 'WORKSPACE' 
+  | 'PROJECT_REPORT'
+  | 'SECRETARIA_LIST' 
+  | 'SECRETARIA_FORM'
+  | 'ARCHIVES'
+  | 'INVOICES_GROUP' 
+  | 'CREATE_INVOICE' 
+  | 'INVOICES' 
+  | 'ACCOUNTING_REGULARIZATION' 
+  | 'CLIENTS' 
+  | 'PURCHASES_GROUP' 
+  | 'CREATE_PURCHASE' 
+  | 'PURCHASES' 
+  | 'SUPPLIERS' 
+  | 'PURCHASE_ANALYSIS' 
+  | 'STOCK_GROUP' 
+  | 'STOCK' 
+  | 'STOCK_PRODUCTS'
+  | 'FINANCE_GROUP' 
+  | 'FINANCE_CASH' 
+  | 'FINANCE_MAPS' 
+  | 'FINANCE_REPORTS' 
+  | 'FINANCE_TAX_DOCS'
+  | 'ACCOUNTING_GROUP' 
+  | 'ACCOUNTING_VAT' 
+  | 'ACCOUNTING_PGC' 
+  | 'ACCOUNTING_CLASSIFY_GROUP'
+  | 'ACCOUNTING_CLASSIFY_SALES'
+  | 'ACCOUNTING_CLASSIFY_PURCHASES'
+  | 'ACCOUNTING_CLASSIFY_SALARY_PROC'
+  | 'ACCOUNTING_CLASSIFY_SALARY_PAY' 
+  | 'ACCOUNTING_RUBRICAS_GROUP'
+  | 'ACCOUNTING_RUBRICAS_SALES'
+  | 'ACCOUNTING_RUBRICAS_PURCHASES'
+  | 'ACCOUNTING_MAPS'
+  | 'ACCOUNTING_DECLARATIONS'
+  | 'ACCOUNTING_TAXES'
+  | 'ACCOUNTING_CALC'
+  | 'ACCOUNTING_SAFT'
+  | 'ACCOUNTING_OPENING_BALANCE'
+  | 'ACCOUNTING_ACCOUNT_EXTRACT'
+  | 'ACCOUNTING_WITHHOLDING_GROUP'
+  | 'ACCOUNTING_WITHHOLDING_RECEIVE'
+  | 'ACCOUNTING_WITHHOLDING_PAY'
+  | 'HR_GROUP'
+  | 'HR'
+  | 'HR_EMPLOYEES'
+  | 'HR_PERFORMANCE'
+  | 'HR_CONTRACT_ISSUE'
+  | 'HR_TRANSFER_ORDER'
+  | 'HR_EFFECTIVENESS'
+  | 'HR_SALARY_LIST'
+  | 'HR_ID_CARDS'
+  | 'SETTINGS'
+  | 'SETTINGS_TAX_TABLE'
+  | 'POS_GROUP'
+  | 'POS'
+  | 'CASH_CLOSURE'
+  | 'CASH_CLOSURE_HISTORY'
+  | 'POS_SETTINGS'
+  | 'SCHOOL_GROUP'
+  | 'SCHOOL_STUDENTS'
+  | 'SCHOOL_TEACHERS'
+  | 'SCHOOL_ACADEMIC'
+  | 'SCHOOL_DOCUMENTS'
+  | 'SCHOOL_REPORTS'
+  | 'RESTAURANT_GROUP'
+  | 'RESTAURANT_MENU'
+  | 'RESTAURANT_TABLES'
+  | 'RESTAURANT_KDS'
+  | 'RESTAURANT_PRODUCTION'
+  | 'HOTEL_GROUP'
+  | 'HOTEL_ROOMS'
+  | 'HOTEL_RESERVATIONS'
+  | 'HOTEL_CHECKIN'
+  | 'HOTEL_GOVERNANCE'
+  | 'REPORTS_GROUP'
+  | 'REPORTS_MONTHLY'
+  | 'REPORTS_YEARLY'
+  | 'REPORTS_DEBTS'
+  | 'REPORTS_MOVEMENTS'
+  | 'CALCULATOR';

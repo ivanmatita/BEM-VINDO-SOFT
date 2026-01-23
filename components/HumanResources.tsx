@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Employee, HrTransaction, HrVacation, SalarySlip, Profession, 
   Contract, AttendanceRecord, Company, ViewState, CashRegister
@@ -8,12 +8,12 @@ import {
   generateId, formatCurrency, formatDate 
 } from '../utils';
 import { 
-  Users, ClipboardList, Briefcase, Calculator, Calendar, 
+  Users, ClipboardList, Briefcase, Calendar, 
   FileText, Printer, Search, Plus, Trash2, X, Table, User, 
   MoreVertical, RefreshCw, Loader2, CheckCircle, AlertTriangle, 
   Clock, Shield, LayoutDashboard, ChevronDown, ChevronUp, ListCheck, 
   Gavel, HeartHandshake, Eye, Ruler, Gift, Wallet, TrendingUp, CheckSquare, Square, Play, Trash, FileSpreadsheet, ChevronRight, FileCheck, Circle, Info,
-  ArrowRight, Filter, Download, DollarSign, ArrowLeft, Contact2
+  ArrowRight, Filter, Download, DollarSign, ArrowLeft, Contact2, ShieldCheck
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import SalaryMap from './SalaryMap';
@@ -765,6 +765,7 @@ const HumanResources: React.FC<HumanResourcesProps> = ({
                 >
                     <ArrowRight size={18}/> Transferir
                 </button>
+                {isLoading && <Loader2 className="animate-spin text-blue-600 ml-2" size={20}/>}
             </div>
             <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-500">Mês:</span>
@@ -1143,7 +1144,7 @@ const HumanResources: React.FC<HumanResourcesProps> = ({
                       <p className="text-slate-500 text-xs font-bold uppercase">Custo Mensal Estimado</p>
                       <h2 className="text-2xl font-bold text-slate-800">{formatCurrency(employees.reduce((acc, e) => acc + e.baseSalary, 0))}</h2>
                   </div>
-                  <div className="p-3 bg-green-50 text-green-600 rounded-lg"><Calculator size={24}/></div>
+                  <div className="p-3 bg-green-50 text-green-600 rounded-lg"><Wallet size={24}/></div>
               </div>
               <div className="bg-white p-5 border-b-4 border-orange-500 shadow-sm flex items-center justify-between">
                   <div>

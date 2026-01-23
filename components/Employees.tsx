@@ -1,15 +1,14 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Employee, WorkLocation, Profession } from '../types';
-import { generateId, formatCurrency, calculateINSS, calculateIRT, formatDate } from '../utils';
+import { generateId, formatCurrency, formatDate } from '../utils';
 import { supabase } from '../services/supabaseClient';
 import { 
-  Users, UserPlus, Search, Filter, Printer, FileText, Trash2, Edit2, Eye, Ban, CheckCircle, 
-  MapPin, Phone, Mail, Calendar, CreditCard, Building2, ChevronDown, ChevronUp, X, Save, Upload, User, 
-  RefreshCw, Database, AlertCircle, Info, Settings, Ruler, Gavel, Wallet, Gift, FileSignature, 
-  UserCheck, UserMinus, MoreVertical, Calculator, ChevronRight, List, Briefcase, Plus, PlusCircle,
-  ArrowLeft, Loader2, Home, Hash, ClipboardList, Clock, Sparkles, Coffee, Download, ChevronLeft,
-  ImageIcon
+  Users, UserPlus, Search, Filter, Printer, FileText, Trash2, Edit2, Eye, 
+  MapPin, Phone, Mail, Calendar, CreditCard, Building2, ChevronDown, ChevronUp, X, Save, 
+  RefreshCw, Database, AlertCircle, Info, Lock, Wallet, Gift, FileSignature, 
+  UserCheck, MoreVertical, ChevronRight, List, Briefcase, Plus, PlusCircle,
+  ArrowLeft, Loader2, Hash, Clock, ImageIcon, Download, ChevronLeft,
+  ShieldCheck, Gavel, Sparkles, Coffee, User
 } from 'lucide-react';
 
 interface EmployeesProps {
@@ -83,11 +82,16 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onSaveEmployee, workLo
   });
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    personal: true,
-    fiscal: false,
+    basic: true,
+    docs: false,
+    contact: false,
     professional: false,
-    subsidies: false,
-    others: false
+    salary: false,
+    fixedSubsidies: false,
+    variableSubsidies: false,
+    periods: false,
+    bonuses: false,
+    bank: false
   });
 
   const [showInssModal, setShowInssModal] = useState(false);
@@ -226,8 +230,7 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onSaveEmployee, workLo
             maritalStatus: f.estado_civil as any,
             nationality: f.nacionalidade,
             address: f.endereco,
-            /* Fix: Changed municipio to municipality and bairro to neighborhood to match Employee type */
-            municipality: f.municipio,
+            municipality: f.municipio, 
             neighborhood: f.bairro,
             workLocationId: f.work_location_id,
             companyId: f.empresa_id,
@@ -311,36 +314,30 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onSaveEmployee, workLo
             empresa_id: '00000000-0000-0000-0000-000000000001',
             tipo_contrato: empObj.contractType,
             employee_number: empObj.employeeNumber,
-            // Fix: Use correct property name 'subsidyTransport' instead of 'subs_transporte'
             subs_transporte: Number(empObj.subsidyTransport || 0),
             subs_transporte_inicio: empObj.subsidyTransportStart,
             subs_transporte_fim: empObj.subsidyTransportEnd,
-            // Fix: Use correct property name 'subsidyFood' instead of 'subs_alimentacao'
             subs_alimentacao: Number(empObj.subsidyFood || 0),
             subs_alimentacao_inicio: empObj.subsidyFoodStart,
             subs_alimentacao_fim: empObj.subsidyFoodEnd,
-            // Fix: Use correct property name 'subsidyFamily' instead of 'subs_familia'
             subs_familia: Number(empObj.subsidyFamily || 0),
             subs_familia_inicio: empObj.subsidyFamilyStart,
             subs_familia_fim: empObj.subsidyFamilyEnd,
-            // Fix: Use correct property name 'subsidyHousing' instead of 'subs_habitacao'
             subs_habitacao: Number(empObj.subsidyHousing || 0),
             subs_habitacao_inicio: empObj.subsidyHousingStart,
             subs_habitacao_fim: empObj.subsidyHousingEnd,
-            // Fix: Use correct property name 'subsidyChristmas' instead of 'subs_natal'
             subs_natal: Number(empObj.subsidyChristmas || 0),
             subs_natal_inicio: empObj.subsidyChristmasStart,
             subs_natal_fim: empObj.subsidyChristmasEnd,
-            // Fix: Use correct property name 'subsidyVacation' instead of 'subs_ferias'
             subs_ferias: Number(empObj.subsidyVacation || 0),
             subs_ferias_inicio: empObj.subsidyVacationStart,
             subs_ferias_fim: empObj.subsidyVacationEnd,
             abonos: Number(empObj.allowances || 0),
             abonos_inicio: empObj.allowancesStart,
             abonos_fim: empObj.allowancesEnd,
+            // Fix: Property 'adiantamentos' does not exist on type 'Employee'. Use 'advances' instead.
             adiantamentos: Number(empObj.advances || 0),
             adiantamentos_inicio: empObj.advancesStart,
-            // Fix: Property 'adiantamentos_fim' does not exist on type 'Employee'. Use 'advancesEnd'.
             adiantamentos_fim: empObj.advancesEnd,
             foto_url: empObj.photoUrl,
             categoria: empObj.category
@@ -772,103 +769,252 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onSaveEmployee, workLo
                 </div>
 
                 <div className="p-6 space-y-4 max-w-6xl mx-auto h-[70vh] overflow-y-auto custom-scrollbar">
+                    
+                    {/* SECTION 1: Dados Básicos */}
                     <div className="border border-slate-200 rounded-none overflow-hidden">
-                        <button 
-                            onClick={() => toggleSection('personal')}
-                            className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                                <span className="font-black text-sm uppercase tracking-tighter">Dados Pessoais e Identificação</span>
-                            </div>
-                            {expandedSections.personal ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                        <button onClick={() => toggleSection('basic')} className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <div className="flex items-center gap-3"><User size={16}/><span className="font-black text-sm uppercase tracking-tighter">1. Dados Básicos</span></div>
+                            {expandedSections.basic ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
                         </button>
-                        
-                        {expandedSections.personal && (
+                        {expandedSections.basic && (
                             <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-2">
                                 <div className="md:col-span-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Nome Completo do Funcionário *</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Nome Completo *</label>
                                     <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} />
                                 </div>
                                 <div className="md:col-span-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Foto de Perfil (URL)</label>
-                                    <div className="flex gap-2">
-                                        <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-medium focus:border-blue-500 outline-none" value={formData.photoUrl || ''} onChange={e => setFormData({...formData, photoUrl: e.target.value})} placeholder="https://..." />
-                                        <button className="bg-slate-100 p-2.5 rounded-xl text-slate-500 hover:bg-slate-200"><ImageIcon size={20}/></button>
-                                    </div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Foto (URL)</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-medium focus:border-blue-500 outline-none" value={formData.photoUrl || ''} onChange={e => setFormData({...formData, photoUrl: e.target.value})} placeholder="https://..." />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">NIF do Funcionário *</label>
-                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-mono focus:border-blue-500 outline-none" value={formData.nif || ''} onChange={e => setFormData({...formData, nif: e.target.value})} />
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Género</label>
+                                    <select className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold bg-white" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as any})}>
+                                        <option value="M">Masculino</option><option value="F">Feminino</option>
+                                    </select>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Nº B.I. / Passaporte</label>
-                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-mono focus:border-blue-500 outline-none" value={formData.biNumber || ''} onChange={e => setFormData({...formData, biNumber: e.target.value})} />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Nº Segurança Social (SSN)</label>
-                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-mono focus:border-blue-500 outline-none" value={formData.ssn || ''} onChange={e => setFormData({...formData, ssn: e.target.value})} />
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Data de nascimento</label>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Data Nascimento</label>
                                     <input type="date" className="w-full border-2 border-slate-100 p-2.5 rounded-xl focus:border-blue-500 outline-none" value={formData.birthDate || ''} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Estado Civil</label>
                                     <select className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold bg-white" value={formData.maritalStatus} onChange={e => setFormData({...formData, maritalStatus: e.target.value as any})}>
-                                        <option value="Solteiro">Solteiro</option>
-                                        <option value="Casado">Casado</option>
-                                        <option value="Divorciado">Divorciado</option>
-                                        <option value="Viuvo">Viuvo</option>
+                                        <option value="Solteiro">Solteiro</option><option value="Casado">Casado</option><option value="Divorciado">Divorciado</option><option value="Viuvo">Viuvo</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Sexo</label>
-                                    <select className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold bg-white" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as any})}>
-                                        <option value="M">Masculino</option>
-                                        <option value="F">Feminino</option>
-                                    </select>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Nacionalidade</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.nationality || ''} onChange={e => setFormData({...formData, nationality: e.target.value})} />
                                 </div>
                             </div>
                         )}
                     </div>
 
+                    {/* SECTION 2: Documentos & Identificação */}
                     <div className="border border-slate-200 rounded-none overflow-hidden">
-                        <button 
-                            onClick={() => toggleSection('professional')}
-                            className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                                <span className="font-black text-sm uppercase tracking-tighter">Dados Profissionais e Salário</span>
+                        <button onClick={() => toggleSection('docs')} className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <div className="flex items-center gap-3"><FileText size={16}/><span className="font-black text-sm uppercase tracking-tighter">2. Documentos & Identificação</span></div>
+                            {expandedSections.docs ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                        </button>
+                        {expandedSections.docs && (
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-2">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">NIF *</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-mono focus:border-blue-500 outline-none" value={formData.nif || ''} onChange={e => setFormData({...formData, nif: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">B.I. / Passaporte</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-mono focus:border-blue-500 outline-none" value={formData.biNumber || ''} onChange={e => setFormData({...formData, biNumber: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Segurança Social (SSN)</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-mono focus:border-blue-500 outline-none" value={formData.ssn || ''} onChange={e => setFormData({...formData, ssn: e.target.value})} />
+                                </div>
                             </div>
+                        )}
+                    </div>
+
+                    {/* SECTION 3: Contacto & Endereço */}
+                    <div className="border border-slate-200 rounded-none overflow-hidden">
+                        <button onClick={() => toggleSection('contact')} className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <div className="flex items-center gap-3"><MapPin size={16}/><span className="font-black text-sm uppercase tracking-tighter">3. Contacto & Endereço</span></div>
+                            {expandedSections.contact ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                        </button>
+                        {expandedSections.contact && (
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Email</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-medium focus:border-blue-500 outline-none" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Telefone</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Endereço</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-medium focus:border-blue-500 outline-none" value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Município</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-medium focus:border-blue-500 outline-none" value={formData.municipality || ''} onChange={e => setFormData({...formData, municipality: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Bairro</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-medium focus:border-blue-500 outline-none" value={formData.neighborhood || ''} onChange={e => setFormData({...formData, neighborhood: e.target.value})} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* SECTION 4: Dados Profissionais */}
+                    <div className="border border-slate-200 rounded-none overflow-hidden">
+                        <button onClick={() => toggleSection('professional')} className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <div className="flex items-center gap-3"><Briefcase size={16}/><span className="font-black text-sm uppercase tracking-tighter">4. Dados Profissionais</span></div>
                             {expandedSections.professional ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
                         </button>
-                        
                         {expandedSections.professional && (
-                            <div className="p-6 space-y-6 animate-in slide-in-from-top-2">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Profissão / Cargo *</label>
-                                        <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.role || ''} onChange={e => setFormData({...formData, role: e.target.value})} />
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-2">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Cargo</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.role || ''} onChange={e => setFormData({...formData, role: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Categoria</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Departamento</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.department || ''} onChange={e => setFormData({...formData, department: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Contrato</label>
+                                    <select className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold bg-white" value={formData.contractType} onChange={e => setFormData({...formData, contractType: e.target.value as any})}>
+                                        <option value="Determinado">Determinado</option><option value="Indeterminado">Indeterminado</option><option value="Estagio">Estágio</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Estado</label>
+                                    <select className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold bg-white" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
+                                        <option value="Active">Ativo</option><option value="Terminated">Terminado</option><option value="OnLeave">Licença</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Data Demissão</label>
+                                    <input type="date" className="w-full border-2 border-slate-100 p-2.5 rounded-xl focus:border-blue-500 outline-none" value={formData.terminationDate || ''} onChange={e => setFormData({...formData, terminationDate: e.target.value})} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* SECTION 5: Dados Salariais */}
+                    <div className="border border-slate-200 rounded-none overflow-hidden">
+                        <button onClick={() => toggleSection('salary')} className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <div className="flex items-center gap-3"><Wallet size={16}/><span className="font-black text-sm uppercase tracking-tighter">5. Dados Salariais</span></div>
+                            {expandedSections.salary ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                        </button>
+                        {expandedSections.salary && (
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Salário Base (Kz) *</label>
+                                    <input type="number" className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-black text-blue-700 focus:border-blue-500 outline-none" value={formData.baseSalary || ''} onChange={e => setFormData({...formData, baseSalary: Number(e.target.value)})} />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* SECTION 6: Subsídios Fixos */}
+                    <div className="border border-slate-200 rounded-none overflow-hidden">
+                        <button onClick={() => toggleSection('fixedSubsidies')} className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <div className="flex items-center gap-3"><Wallet size={16}/><span className="font-black text-sm uppercase tracking-tighter">6. Subsídios Fixos</span></div>
+                            {expandedSections.fixedSubsidies ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                        </button>
+                        {expandedSections.fixedSubsidies && (
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6 animate-in slide-in-from-top-2">
+                                <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Transporte</label><input type="number" className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold" value={formData.subsidyTransport || 0} onChange={e => setFormData({...formData, subsidyTransport: Number(e.target.value)})} /></div>
+                                <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Alimentação</label><input type="number" className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold" value={formData.subsidyFood || 0} onChange={e => setFormData({...formData, subsidyFood: Number(e.target.value)})} /></div>
+                                <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Família</label><input type="number" className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold" value={formData.subsidyFamily || 0} onChange={e => setFormData({...formData, subsidyFamily: Number(e.target.value)})} /></div>
+                                <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Habitação</label><input type="number" className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold" value={formData.subsidyHousing || 0} onChange={e => setFormData({...formData, subsidyHousing: Number(e.target.value)})} /></div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* SECTION 7: Subsídios Variáveis */}
+                    <div className="border border-slate-200 rounded-none overflow-hidden">
+                        <button onClick={() => toggleSection('variableSubsidies')} className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <div className="flex items-center gap-3"><Gift size={16}/><span className="font-black text-sm uppercase tracking-tighter">7. Subsídios Variáveis</span></div>
+                            {expandedSections.variableSubsidies ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                        </button>
+                        {expandedSections.variableSubsidies && (
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6 animate-in slide-in-from-top-2">
+                                <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Natal</label><input type="number" className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold" value={formData.subsidyChristmas || 0} onChange={e => setFormData({...formData, subsidyChristmas: Number(e.target.value)})} /></div>
+                                <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Férias</label><input type="number" className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold" value={formData.subsidyVacation || 0} onChange={e => setFormData({...formData, subsidyVacation: Number(e.target.value)})} /></div>
+                                <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Horas Extra</label><input type="number" className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold" value={formData.subsidyExtra || 0} onChange={e => setFormData({...formData, subsidyExtra: Number(e.target.value)})} /></div>
+                                <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Outros</label><input type="number" className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold" value={formData.otherSubsidies || 0} onChange={e => setFormData({...formData, otherSubsidies: Number(e.target.value)})} /></div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* SECTION 8: Períodos dos Subsídios */}
+                    <div className="border border-slate-200 rounded-none overflow-hidden">
+                        <button onClick={() => toggleSection('periods')} className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <div className="flex items-center gap-3"><Clock size={16}/><span className="font-black text-sm uppercase tracking-tighter">8. Períodos dos Subsídios</span></div>
+                            {expandedSections.periods ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                        </button>
+                        {expandedSections.periods && (
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in slide-in-from-top-2">
+                                <div className="col-span-1 lg:col-span-2 p-2 bg-slate-50 rounded border"><p className="font-bold text-[9px] uppercase mb-1">Transporte</p><div className="flex gap-2"><input type="date" className="flex-1 p-1 border rounded" value={formData.subsidyTransportStart || ''} onChange={e=>setFormData({...formData, subsidyTransportStart: e.target.value})}/><input type="date" className="flex-1 p-1 border rounded" value={formData.subsidyTransportEnd || ''} onChange={e=>setFormData({...formData, subsidyTransportEnd: e.target.value})}/></div></div>
+                                <div className="col-span-1 lg:col-span-2 p-2 bg-slate-50 rounded border"><p className="font-bold text-[9px] uppercase mb-1">Alimentação</p><div className="flex gap-2"><input type="date" className="flex-1 p-1 border rounded" value={formData.subsidyFoodStart || ''} onChange={e=>setFormData({...formData, subsidyFoodStart: e.target.value})}/><input type="date" className="flex-1 p-1 border rounded" value={formData.subsidyFoodEnd || ''} onChange={e=>setFormData({...formData, subsidyFoodEnd: e.target.value})}/></div></div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* SECTION 9: Abonos & Adiantamentos */}
+                    <div className="border border-slate-200 rounded-none overflow-hidden">
+                        <button onClick={() => toggleSection('bonuses')} className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <div className="flex items-center gap-3"><ShieldCheck size={16}/><span className="font-black text-sm uppercase tracking-tighter">9. Abonos & Adiantamentos</span></div>
+                            {expandedSections.bonuses ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                        </button>
+                        {expandedSections.bonuses && (
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2">
+                                <div className="p-4 bg-slate-50 rounded-xl border">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Valor Abonos</label>
+                                    <input type="number" className="w-full border-2 border-slate-100 p-2 rounded-lg font-bold" value={formData.allowances || 0} onChange={e => setFormData({...formData, allowances: Number(e.target.value)})} />
+                                    <div className="flex gap-2 mt-2">
+                                        <input type="date" className="flex-1 p-1 border rounded text-xs" value={formData.allowancesStart || ''} onChange={e => setFormData({...formData, allowancesStart: e.target.value})} />
+                                        <input type="date" className="flex-1 p-1 border rounded text-xs" value={formData.allowancesStart || ''} onChange={e => setFormData({...formData, allowancesEnd: e.target.value})} />
                                     </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Categoria Profissional</label>
-                                        <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value})} />
+                                </div>
+                                <div className="p-4 bg-slate-50 rounded-xl border">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Valor Adiantamentos</label>
+                                    <input type="number" className="w-full border-2 border-slate-100 p-2 rounded-lg font-bold" value={formData.advances || 0} onChange={e => setFormData({...formData, advances: Number(e.target.value)})} />
+                                    <div className="flex gap-2 mt-2">
+                                        <input type="date" className="flex-1 p-1 border rounded text-xs" value={formData.advancesStart || ''} onChange={e => setFormData({...formData, advancesStart: e.target.value})} />
+                                        <input type="date" className="flex-1 p-1 border rounded text-xs" value={formData.advancesEnd || ''} onChange={e => setFormData({...formData, advancesEnd: e.target.value})} />
                                     </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Departamento</label>
-                                        <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.department || ''} onChange={e => setFormData({...formData, department: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Salário Base (Bruto) *</label>
-                                        <input 
-                                            type="number" 
-                                            className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-black text-blue-600 focus:border-blue-500 outline-none" 
-                                            value={formData.baseSalary || ''} 
-                                            onChange={e => setFormData({...formData, baseSalary: Number(e.target.value)})} 
-                                        />
-                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* SECTION 10: Dados Bancários */}
+                    <div className="border border-slate-200 rounded-none overflow-hidden">
+                        <button onClick={() => toggleSection('bank')} className="w-full flex items-center justify-between p-3 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            <div className="flex items-center gap-3"><Building2 size={16}/><span className="font-black text-sm uppercase tracking-tighter">10. Dados Bancários</span></div>
+                            {expandedSections.bank ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
+                        </button>
+                        {expandedSections.bank && (
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Nome do Banco</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.bankName || ''} onChange={e => setFormData({...formData, bankName: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">Conta Bancária</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-bold focus:border-blue-500 outline-none" value={formData.bankAccount || ''} onChange={e => setFormData({...formData, bankAccount: e.target.value})} />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase block mb-1">IBAN (Angola AO06)</label>
+                                    <input className="w-full border-2 border-slate-100 p-2.5 rounded-xl font-mono font-black text-blue-700 focus:border-blue-500 outline-none" value={formData.iban || ''} onChange={e => setFormData({...formData, iban: e.target.value})} />
                                 </div>
                             </div>
                         )}
